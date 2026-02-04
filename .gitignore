@@ -174,3 +174,9 @@ cython_debug/
 /AnnoMI/
 /dumps/
 /output/
+
+# Google API credentials (sensitive)
+credentials.json
+
+# Archived journals
+/archived/
