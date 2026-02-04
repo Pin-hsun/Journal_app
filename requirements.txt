@@ -1,0 +1,6 @@
+streamlit
+python-dotenv
+langchain-anthropic
+langchain-core
+gspread
+google-auth
