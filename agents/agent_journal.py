@@ -31,16 +31,29 @@ def save_to_google_sheets(data):
         print("Please install gspread: pip install gspread google-auth")
         return False
 
-    if not os.path.exists(GOOGLE_SHEETS_CREDENTIALS):
-        print(f"Credentials file not found: {GOOGLE_SHEETS_CREDENTIALS}")
-        return False
-
     try:
         scopes = [
             'https://www.googleapis.com/auth/spreadsheets',
             'https://www.googleapis.com/auth/drive'
         ]
-        credentials = Credentials.from_service_account_file(GOOGLE_SHEETS_CREDENTIALS, scopes=scopes)
+
+        # Try Streamlit secrets first (for cloud deployment)
+        try:
+            import streamlit as st
+            if "gcp_service_account" in st.secrets:
+                credentials = Credentials.from_service_account_info(
+                    st.secrets["gcp_service_account"],
+                    scopes=scopes
+                )
+            else:
+                raise KeyError("No gcp_service_account in secrets")
+        except Exception:
+            # Fall back to credentials file (for local development)
+            if not os.path.exists(GOOGLE_SHEETS_CREDENTIALS):
+                print(f"Credentials file not found: {GOOGLE_SHEETS_CREDENTIALS}")
+                return False
+            credentials = Credentials.from_service_account_file(GOOGLE_SHEETS_CREDENTIALS, scopes=scopes)
+
         client = gspread.authorize(credentials)
 
         # Open the spreadsheet (create if not exists)
