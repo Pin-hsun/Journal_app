@@ -66,7 +66,7 @@ def save_to_google_sheets(data):
 
         # Add headers if sheet is empty
         if worksheet.row_count == 0 or worksheet.cell(1, 1).value is None:
-            headers = ['時間', '心得回饋', 'CBT對話', 'CBT日記', '敘事對話', '重塑日記']
+            headers = ['時間', '心得回饋', 'CBT對話', 'CBT日記', '敘事對話', '重塑日記', '回饋對話']
             worksheet.append_row(headers)
 
         # Append the data row
@@ -76,7 +76,8 @@ def save_to_google_sheets(data):
             data.get('cbt_conversation', ''),
             data.get('cbt_journal', ''),
             data.get('narrative_conversation', ''),
-            data.get('reframed_journal', '')
+            data.get('reframed_journal', ''),
+            data.get('finalize_conversation', '')
         ]
         worksheet.append_row(row)
         return True
@@ -442,12 +443,18 @@ class JournalAgent:
         if hasattr(self, 'narrative_messages') and self.narrative_messages:
             narrative_conv = self._format_conversation(self.narrative_messages, skip_first=2)
 
+        # Format finalize conversation (skip system and title message)
+        finalize_conv = ""
+        if hasattr(self, 'finalize_messages') and self.finalize_messages:
+            finalize_conv = self._format_conversation(self.finalize_messages, skip_first=2)
+
         data = {
             'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'feedback': user_feedback,
             'cbt_conversation': cbt_conv,
             'cbt_journal': getattr(self, 'reframed_journal', ''),
             'narrative_conversation': narrative_conv,
-            'reframed_journal': getattr(self, 'final_summary', '')
+            'reframed_journal': getattr(self, 'final_summary', ''),
+            'finalize_conversation': finalize_conv
         }
         return save_to_google_sheets(data)
