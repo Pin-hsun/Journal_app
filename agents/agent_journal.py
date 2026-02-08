@@ -66,13 +66,17 @@ def save_to_google_sheets(data):
 
         # Add headers if sheet is empty
         if worksheet.row_count == 0 or worksheet.cell(1, 1).value is None:
-            headers = ['時間', '心得回饋']
+            headers = ['時間', '心得回饋', 'CBT對話', 'CBT日記', '敘事對話', '重塑日記']
             worksheet.append_row(headers)
 
         # Append the data row
         row = [
             data.get('timestamp', datetime.now().strftime('%Y-%m-%d %H:%M:%S')),
-            data.get('feedback', '')
+            data.get('feedback', ''),
+            data.get('cbt_conversation', ''),
+            data.get('cbt_journal', ''),
+            data.get('narrative_conversation', ''),
+            data.get('reframed_journal', '')
         ]
         worksheet.append_row(row)
         return True
@@ -411,8 +415,18 @@ class JournalAgent:
         # finalize_messages: system, user(title), assistant, user, assistant, user, assistant = 7
         return hasattr(self, 'finalize_messages') and len(self.finalize_messages) >= 7
 
+    def _format_conversation(self, messages, skip_first=1):
+        """Format messages into a readable conversation string."""
+        lines = []
+        for msg in messages[skip_first:]:
+            if msg["role"] == "system":
+                continue
+            role = "用戶" if msg["role"] == "user" else "助理"
+            lines.append(f"{role}: {msg['content']}")
+        return "\n\n".join(lines)
+
     def save_feedback(self, user_feedback):
-        """Save user feedback to Google Sheets.
+        """Save user feedback and conversations to Google Sheets.
 
         Args:
             user_feedback: User's feedback text
@@ -420,8 +434,20 @@ class JournalAgent:
         Returns:
             bool: True if successful, False otherwise
         """
+        # Format CBT conversation (skip system message)
+        cbt_conv = self._format_conversation(self.messages, skip_first=1)
+
+        # Format narrative conversation (skip system and kickoff)
+        narrative_conv = ""
+        if hasattr(self, 'narrative_messages') and self.narrative_messages:
+            narrative_conv = self._format_conversation(self.narrative_messages, skip_first=2)
+
         data = {
             'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'feedback': user_feedback
+            'feedback': user_feedback,
+            'cbt_conversation': cbt_conv,
+            'cbt_journal': getattr(self, 'reframed_journal', ''),
+            'narrative_conversation': narrative_conv,
+            'reframed_journal': getattr(self, 'final_summary', '')
         }
         return save_to_google_sheets(data)
